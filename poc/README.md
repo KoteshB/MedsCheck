@@ -31,3 +31,7 @@ Response:
     {"status":"received","count":2,"medicines":[{"name":"Metformin","dosage":"500 mg"},{"name":"Aspirin","dosage":null}]}
 
 `dosage` is optional and comes back as `null` when omitted. An empty list, or a medicine with a missing or empty `name`, is rejected with a validation error.
+
+## Links <personal>
+https://claude.ai/share/7c016ff6-0fc2-4878-a898-5a7f010f2237
+

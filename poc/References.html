@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedsCheck — References</title>
+  <style>
+    :root { --ink: #16302b; --muted: #5f7873; --line: #dbe7e4; --tint: #f1f8f6; --teal: #16a995; --primary: #07594f; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: #fff; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.55; }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 0 20px 48px; }
+    header { padding: 24px 0; display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
+    .brand span { color: var(--teal); }
+    .tag { font-size: 12px; color: var(--muted); background: var(--tint); padding: 3px 10px; border-radius: 99px; }
+    h1 { font-size: 28px; letter-spacing: -.8px; margin: 20px 0 8px; }
+    h2 { font-size: 18px; margin: 28px 0 8px; }
+    p, ul { margin: 0 0 12px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 4px; }
+    a { color: var(--primary); }
+    .lede { color: var(--muted); }
+    .note { background: var(--tint); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; margin-bottom: 12px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">Meds<span>Check</span></div>
+      <span class="tag">References</span>
+    </header>
+
+    <h1>RxNorm</h1>
+    <p class="lede">A free, standardized drug vocabulary from the US National Library of Medicine (NLM). It gives each medicine a unique ID (an RxCUI) and links the many names for the same drug together.</p>
+
+    <h2>What it covers</h2>
+    <table>
+      <tr><th>Level</th><th>Example</th></tr>
+      <tr><td>Ingredient</td><td>metformin</td></tr>
+      <tr><td>Brand name</td><td>Glucophage</td></tr>
+      <tr><td>Strength and form</td><td>metformin 500 mg oral tablet</td></tr>
+      <tr><td>Combinations and packs</td><td>metformin / sitagliptin</td></tr>
+    </table>
+    <p>"Glucophage 500 mg", "metformin hydrochloride 500 mg tablet" and "metformin 500mg" all map to the same ID. It also tells you which entry is the ingredient and which is the brand.</p>
+
+    <h2>Why it matters for MedsCheck</h2>
+    <ul>
+      <li><strong>Matching names:</strong> a brand name, a generic name or a misspelling resolves to one canonical medicine. This is the "is this a real medicine" check.</li>
+      <li><strong>Interaction lookups:</strong> many drug databases key their data on RxNorm IDs or ingredient names, so a canonical ID makes it simple to join to sources.</li>
+      <li><strong>Dosage and strength:</strong> it separates the medicine from its strength and form, which supports the <code>dosage</code> field.</li>
+    </ul>
+
+    <h2>How to use it</h2>
+    <ul>
+      <li><strong>RxNav REST API:</strong> free, no key. Includes name search, approximate matching (for "did you mean") and ingredient lookups.</li>
+      <li><strong>Downloadable dataset:</strong> released monthly, so the backend can host it and avoid sending typed text to an outside service.</li>
+      <li><strong>RxTerms autocomplete:</strong> the NLM Clinical Tables search behind <code>USE_NLM = true</code> in <code>medcheck-minimal-2.html</code>. RxTerms is a subset of RxNorm built for typing into search boxes.</li>
+    </ul>
+
+    <h2>What it does not do</h2>
+    <ul>
+      <li><strong>No interaction data.</strong> RxNorm names and identifies medicines only. Interactions need a separate source, such as DailyMed labels or openFDA.</li>
+      <li><strong>US focus.</strong> Coverage of non-US products is weaker, so names like Paracetamol or some regional brands may be missing or only match as synonyms.</li>
+    </ul>
+
+    <h2>Links</h2>
+    <ul>
+      <li><a href="https://www.nlm.nih.gov/research/umls/rxnorm/">RxNorm overview (NLM)</a></li>
+      <li><a href="https://lhncbc.nlm.nih.gov/RxNav/APIs/">RxNav APIs</a></li>
+      <li><a href="https://clinicaltables.nlm.nih.gov/">NLM Clinical Tables search service</a></li>
+    </ul>
+    <p class="note">The facts above are from memory. The Clinical Tables autocomplete was tested; the other links and details were not re-checked. Verify against the NLM pages before relying on them.</p>
+
+    <footer>General information only, not a substitute for professional medical advice. Always ask a doctor or pharmacist.</footer>
+  </div>
+</body>
+</html>

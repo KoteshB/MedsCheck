@@ -280,6 +280,22 @@
       border: 0; border-radius: 7px; padding: 0 14px; background: #e0f4ef;
       color: #07594f; font-weight: 700; cursor: pointer;
     }
+    .rx-card {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 14px;
+      border: 1px dashed #8fc7ef; border-radius: 9px; padding: 13px 16px; background: #f7fcfb;
+    }
+    .rx-card .rx-icon { font-size: 26px; }
+    .rx-card div { flex: 1; min-width: 0; }
+    .rx-card strong { display: block; font-size: 13px; margin-bottom: 2px; }
+    .rx-card small { color: var(--muted); font-size: 12px; }
+    .rx-card button, .scan-actions button {
+      border: 0; border-radius: 7px; padding: 9px 14px; background: #e0f4ef;
+      color: #07594f; font-weight: 700; cursor: pointer; font-size: 13px; white-space: nowrap;
+    }
+    .rx-card button:disabled, .scan-actions button:disabled { opacity: .55; cursor: default; }
+    .scan-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0 0; color: var(--muted); font-size: 12px; }
+    .src { display: block; color: #17675e; font-size: 11px; margin-top: 3px; }
+    .photo-note { color: var(--muted); font-size: 11px; margin: 8px 0 0; }
     @media (max-width: 1160px) {
       .main { margin-left: 4%; margin-right: 4%; }
       .topbar { padding-left: 4%; padding-right: 4%; gap: 25px; }
@@ -348,6 +364,12 @@
       </div>
       <p class="subtext">Add each medicine separately. Include the strength when known.</p>
 
+      <div class="rx-card">
+        <span class="rx-icon" aria-hidden="true">📄</span>
+        <div><strong>Have a prescription?</strong><small>Upload a photo. We read the medicines and run the checks.</small></div>
+        <button type="button" id="rx-btn" onclick="readPrescription()">Upload photo</button>
+      </div>
+
       <div class="medicine-list" id="medicine-list">
         <div class="medicine">
           <div class="pill-icon">♧</div>
@@ -371,6 +393,12 @@
         <input id="new-medicine" type="text" placeholder="Medicine name and strength" aria-label="New medicine name and strength" />
         <button onclick="addMedicine()">Add</button>
       </div>
+      <div id="scan-actions" class="scan-actions" style="display:none">
+        <span>Or read the name from a photo:</span>
+        <button type="button" onclick="readMedicinePhoto('strip')">📷 Medicine strip</button>
+        <button type="button" onclick="readMedicinePhoto('box')">📷 Medicine box</button>
+      </div>
+      <p class="photo-note">Check what we read from photos before you evaluate. Photos are not stored.</p>
 
       <div class="notice">
         <div class="info">ⓘ</div>
@@ -389,7 +417,7 @@
       <h3>How it works</h3>
       <div class="step">
         <div class="step-number">1</div><div class="step-icon">▤</div>
-        <div><strong>Enter your medicines</strong><p>Add medicine names and strengths (or just the names).</p></div>
+        <div><strong>Enter your medicines</strong><p>Type medicine names and strengths, or upload a photo of a prescription, a medicine strip or a medicine box.</p></div>
       </div>
       <div class="step-arrow"><span>⌄</span></div>
       <div class="step">
@@ -420,6 +448,112 @@
   <script>
     // Demo UI only. Set this to your backend endpoint when it is available.
     const API_URL = ""; // Example: "http://localhost:8000/api/evaluate"
+    // Photo endpoints. Leave blank to use simulated responses.
+    const EXTRACT_URL = "";      // POST multipart { image, kind: "strip" | "box" } -> { medicines: [{ name, strength? }] }
+    const PRESCRIPTION_URL = ""; // POST multipart { image } -> { medicines: [{ name, strength? }], evaluation: {...} }
+
+    const SOURCE_LABEL = { strip: "Read from strip photo", box: "Read from box photo", prescription: "Read from prescription" };
+    const DEMO_READ = {
+      strip: [{ name: "Atorvastatin", strength: "20 mg" }],
+      box: [{ name: "Amlodipine", strength: "5 mg" }],
+      prescription: [{ name: "Amoxicillin", strength: "500 mg" }, { name: "Paracetamol", strength: "" }]
+    };
+
+    function appendMedicineRow(name, strength, kind) {
+      const row = document.createElement("div");
+      row.className = "medicine";
+      row.innerHTML = `
+        <div class="pill-icon">♧</div>
+        <div class="medicine-info"><strong></strong><small></small></div>
+        <button class="remove" aria-label="Remove medicine">×</button>`;
+      row.querySelector("strong").textContent = name;
+      row.querySelector("small").textContent = strength || "Strength not specified";
+      if (kind) {
+        const src = document.createElement("span");
+        src.className = "src";
+        src.textContent = `${SOURCE_LABEL[kind]}. Please check.`;
+        row.querySelector(".medicine-info").appendChild(src);
+      }
+      row.querySelector(".remove").addEventListener("click", function () { removeMedicine(this); });
+      document.getElementById("medicine-list").appendChild(row);
+      updateCount();
+    }
+
+    function pickImage() {
+      return new Promise(resolve => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.onchange = () => resolve(input.files[0] || null);
+        input.oncancel = () => resolve(null);
+        input.click();
+      });
+    }
+
+    async function postImage(url, file, fields = {}) {
+      const body = new FormData();
+      body.append("image", file);
+      for (const [k, v] of Object.entries(fields)) body.append(k, v);
+      const res = await fetch(url, { method: "POST", body });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      return res.json();
+    }
+
+    function showMessage(title, text) {
+      const results = document.getElementById("results");
+      results.style.display = "block";
+      results.querySelector("h4").textContent = title;
+      document.getElementById("result-message").textContent = text;
+    }
+
+    // Strip or box photo: adds the medicines it finds to the list.
+    async function readMedicinePhoto(kind) {
+      const file = await pickImage();
+      if (!file) return;
+      const buttons = document.querySelectorAll("#scan-actions button");
+      buttons.forEach(b => b.disabled = true);
+      showMessage("Reading photo…", "Looking for the medicine name.");
+      try {
+        const found = EXTRACT_URL ? (await postImage(EXTRACT_URL, file, { kind })).medicines : DEMO_READ[kind];
+        if (!found.length) throw new Error("No medicine name found");
+        found.forEach(m => appendMedicineRow(m.name, m.strength, kind));
+        showMessage("Added from photo", EXTRACT_URL
+          ? "Check the name" + (found.length > 1 ? "s" : "") + " in your list before you evaluate."
+          : "Demo only: simulated photo read. Set EXTRACT_URL to connect the backend.");
+      } catch (error) {
+        showMessage("Could not read the photo", `${error.message}. Type the name instead.`);
+      } finally {
+        buttons.forEach(b => b.disabled = false);
+      }
+    }
+
+    // Prescription photo: backend reads the medicines and runs the checks in one step.
+    async function readPrescription() {
+      const file = await pickImage();
+      if (!file) return;
+      const btn = document.getElementById("rx-btn");
+      btn.disabled = true;
+      showMessage("Reading prescription…", "Looking for the medicines on your prescription.");
+      try {
+        let found, evaluation;
+        if (PRESCRIPTION_URL) {
+          const data = await postImage(PRESCRIPTION_URL, file);
+          found = data.medicines;
+          evaluation = data.evaluation;
+        } else {
+          found = DEMO_READ.prescription;
+        }
+        if (!found.length) throw new Error("No medicines found");
+        found.forEach(m => appendMedicineRow(m.name, m.strength, "prescription"));
+        showMessage(evaluation ? "Evaluation response received" : "Demo only",
+          evaluation ? JSON.stringify(evaluation, null, 2)
+                     : "Simulated prescription read. Set PRESCRIPTION_URL to connect the backend. No evaluation was performed.");
+      } catch (error) {
+        showMessage("Could not read the prescription", `${error.message}. Add the medicines below instead.`);
+      } finally {
+        btn.disabled = false;
+      }
+    }
 
     function updateCount() {
       const count = document.querySelectorAll("#medicine-list .medicine").length;
@@ -433,8 +567,10 @@
 
     function showAddMedicine() {
       const form = document.getElementById("add-form");
-      form.style.display = form.style.display === "flex" ? "none" : "flex";
-      if (form.style.display === "flex") document.getElementById("new-medicine").focus();
+      const open = form.style.display !== "flex";
+      form.style.display = open ? "flex" : "none";
+      document.getElementById("scan-actions").style.display = open ? "flex" : "none";
+      if (open) document.getElementById("new-medicine").focus();
     }
 
     function addMedicine() {
