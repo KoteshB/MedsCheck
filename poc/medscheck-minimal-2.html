@@ -72,6 +72,18 @@
     #suggest li.note:hover { background: none; }
 
     .gap { height: 20px; }
+
+    .sources { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .sources h2 { font-size: 14px; margin: 0 0 8px; }
+    .toggle { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+    .toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .track { flex: none; position: relative; width: 38px; height: 22px; margin-top: 1px; border-radius: 99px; background: #c4d4d0; transition: background .15s; }
+    .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; }
+    .toggle input:checked + .track { background: var(--primary); }
+    .toggle input:checked + .track::after { transform: translateX(16px); }
+    .toggle input:focus-visible + .track { outline: 2px solid var(--teal); outline-offset: 2px; }
+    .toggle-text { display: flex; flex-direction: column; }
+    .toggle-text small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
     .go {
       width: 100%; border: 0; border-radius: 8px; padding: 14px; cursor: pointer;
       background: var(--primary); color: #fff; font-weight: 700;
@@ -116,6 +128,18 @@
 
         <div class="gap"></div>
         <button type="submit" class="go" id="go">Evaluate interactions</button>
+
+        <section class="sources" aria-labelledby="sources-title">
+          <h2 id="sources-title">Sources</h2>
+          <label class="toggle">
+            <input type="checkbox" id="src-rxnorm" role="switch" checked />
+            <span class="track" aria-hidden="true"></span>
+            <span class="toggle-text">
+              <strong>RxNorm</strong>
+              <small id="src-note">Medicine suggestions come from the US National Library of Medicine. What you type (3+ letters) is sent to them.</small>
+            </span>
+          </label>
+        </section>
       </form>
 
       <div id="results" role="status" aria-live="polite"></div>
@@ -137,7 +161,8 @@
     //  false: built-in list below. Nothing you type leaves the page.
     //  true:  the US National Library of Medicine RxTerms search (much larger list).
     //         Each keystroke (3+ letters) is sent to clinicaltables.nlm.nih.gov.
-    const USE_NLM = true;
+    // The "RxNorm" switch under Sources sets this at runtime. This is only its starting value.
+    let USE_NLM = true;
 
     const MEDICINES = `Acetaminophen, Acyclovir, Albuterol, Alendronate, Allopurinol, Alprazolam, Amiodarone, Amitriptyline, Amlodipine,
       Amoxicillin, Amoxicillin/Clavulanate, Apixaban, Aripiprazole, Aspirin, Atenolol, Atorvastatin, Azithromycin, Baclofen,
@@ -317,6 +342,23 @@
       active = options.length ? 0 : -1;
       renderSuggest(text, options.length ? "" : "No matching medicine found. Check the spelling.");
     }
+
+    // Sources: the RxNorm switch drives USE_NLM.
+    const rxnormToggle = document.getElementById("src-rxnorm");
+    const srcNote = document.getElementById("src-note");
+    function syncSources() {
+      USE_NLM = rxnormToggle.checked;
+      srcNote.textContent = USE_NLM
+        ? "Medicine suggestions come from the US National Library of Medicine. What you type (3+ letters) is sent to them."
+        : "Using the built-in list of common medicines. Nothing you type leaves this page.";
+    }
+    rxnormToggle.checked = USE_NLM;
+    rxnormToggle.addEventListener("change", () => {
+      syncSources();
+      closeSuggest();
+      if (q.value.trim()) update();
+    });
+    syncSources();
 
     q.addEventListener("input", update);
     q.addEventListener("focus", () => { if (q.value.trim()) update(); });
