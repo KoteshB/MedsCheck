@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedsCheck — Design options</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e6edeb; color: #16302b; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.5; }
+    .page { max-width: 1280px; margin: 0 auto; padding: 32px 20px 56px; }
+    .page > h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.4px; }
+    .page > p { margin: 0 0 24px; color: #5f7873; max-width: 640px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; align-items: start; }
+    .label { margin: 0 0 8px; }
+    .label b { display: block; font-size: 15px; }
+    .label span { color: #5f7873; font-size: 13px; }
+
+    /* ---------- shared structure (each design re-themes it with variables) ---------- */
+    .frame { border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(22,48,43,.08), 0 8px 24px rgba(22,48,43,.08); background: var(--bg); color: var(--ink); }
+    .app { padding: 0 22px 22px; font-family: var(--font, inherit); }
+    button { font: inherit; color: inherit; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 6px; }
+    .brand { font-size: 19px; font-weight: 800; letter-spacing: -.5px; }
+    .brand span { color: var(--accent); }
+    .tag { font-size: 11.5px; color: var(--muted); background: var(--tint); padding: 3px 10px; border-radius: 99px; }
+    h2.title { font-size: 26px; line-height: 1.15; letter-spacing: -.8px; margin: 18px 0 16px; font-family: var(--head-font, inherit); font-weight: var(--head-weight, 800); }
+
+    .box { position: relative; background: var(--tint); border: var(--box-border); border-radius: var(--radius); }
+    .corner { position: absolute; top: 7px; right: 14px; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; line-height: 1.3; color: var(--muted); }
+    .corner a { color: var(--primary-text); font-weight: 600; text-decoration: none; }
+    .chips { padding: 10px 10px 4px; min-height: 64px; }
+    .chips::before { content: ""; float: right; width: 62px; height: 34px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 6px 6px 0; padding: 3px 5px 3px 12px; background: var(--chip); border: var(--chip-border); border-radius: var(--chip-radius); font-size: 14px; }
+    .chip i { font-style: normal; color: var(--muted); width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; font-size: 16px; line-height: 1; }
+    .meter { display: none; height: 3px; margin: 0 10px 8px; border-radius: 3px; background: var(--line); overflow: hidden; }
+    .meter b { display: block; height: 100%; width: 32%; background: var(--accent); }
+
+    .search { margin-top: 10px; }
+    .search div { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--field); border: var(--field-border); border-radius: var(--radius); color: var(--muted); }
+    .search svg { flex: none; width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+    .go { width: 100%; margin-top: 14px; padding: 14px; border: 0; border-radius: var(--radius); background: var(--primary); color: var(--primary-ink); font-weight: 700; cursor: default; }
+    .sources { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .sources h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 700; }
+    .toggle { display: flex; gap: 12px; align-items: flex-start; }
+    .track { flex: none; position: relative; width: 38px; height: 22px; border-radius: 99px; background: var(--primary); margin-top: 1px; }
+    .track::after { content: ""; position: absolute; top: 2px; left: 18px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+    .toggle strong { display: block; }
+    .toggle small { color: var(--muted); font-size: 12.5px; line-height: 1.4; display: block; }
+    .disc { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+    .disc b { color: var(--ink); }
+    .disc p { margin: 0 0 4px; }
+
+    /* ---------- 1. Soft card ---------- */
+    .d1 { --bg: #eef6f4; --ink: #16302b; --muted: #5f7873; --line: #d5e4e0; --tint: #f6fbfa; --accent: #16a995; --primary: #07594f; --primary-ink: #fff; --primary-text: #07594f;
+          --chip: #fff; --chip-border: 1px solid #d5e4e0; --chip-radius: 99px; --field: #fff; --field-border: 1px solid #d5e4e0; --box-border: 1px solid #d5e4e0; --radius: 12px; }
+    .d1 .app { margin: 16px; padding: 0 20px 20px; background: #fff; border-radius: 18px; box-shadow: 0 4px 18px rgba(7,89,79,.10); }
+    .d1 .frame { box-shadow: none; }
+    .d1 .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: -2px; }
+    .d1 .go { box-shadow: 0 4px 12px rgba(7,89,79,.25); }
+
+    /* ---------- 2. Editorial ---------- */
+    .d2 { --bg: #fbfaf6; --ink: #1b2b27; --muted: #6b7b77; --line: #e4e2d9; --tint: transparent; --accent: #0f7f6f; --primary: #0b3d36; --primary-ink: #fff; --primary-text: #0b3d36;
+          --chip: transparent; --chip-border: 0; --chip-radius: 0; --field: transparent; --field-border: 0; --box-border: 0; --radius: 0;
+          --font: Inter, ui-sans-serif, system-ui, sans-serif; --head-font: Georgia, "Times New Roman", serif; --head-weight: 600; }
+    .d2 h2.title { font-size: 32px; letter-spacing: -1px; margin: 26px 0 22px; }
+    .d2 .brand { font-weight: 700; letter-spacing: 1.5px; font-size: 13px; text-transform: uppercase; }
+    .d2 .tag { background: none; padding: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+    .d2 .box { border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); }
+    .d2 .chips { padding: 12px 0 6px; }
+    .d2 .corner { right: 0; top: 8px; }
+    .d2 .chip { padding: 2px 0; margin-right: 4px; font-size: 15px; font-family: var(--head-font); }
+    .d2 .chip:not(:last-child)::after { content: ","; margin-left: -4px; }
+    .d2 .chip i { display: none; }
+    .d2 .search div { border-bottom: 1.5px solid var(--ink); padding: 12px 0; }
+    .d2 .go { margin-top: 20px; }
+    .d2 .track { background: var(--primary); }
+
+    /* ---------- 3. Clinical ---------- */
+    .d3 { --bg: #f3f7f6; --ink: #12302a; --muted: #5b736e; --line: #d9e5e2; --tint: #fff; --accent: #16a995; --primary: #07594f; --primary-ink: #fff; --primary-text: #07594f;
+          --chip: #eaf5f2; --chip-border: 1px solid #cfe5df; --chip-radius: 8px; --field: #fff; --field-border: 1px solid #c7d9d5; --box-border: 1px solid #d9e5e2; --radius: 8px; }
+    .d3 .band { background: var(--primary); color: #fff; padding: 0 22px; }
+    .d3 .band header { padding: 18px 0 16px; }
+    .d3 .band .brand span { color: #6fe0cf; }
+    .d3 .band .tag { background: rgba(255,255,255,.14); color: #d6f3ee; }
+    .d3 h2.title { margin-top: 20px; }
+    .d3 .chip { padding-left: 5px; }
+    .d3 .chip::before { content: attr(data-i); width: 22px; height: 22px; border-radius: 6px; background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+    .d3 .meter { display: block; }
+    .d3 .go { text-transform: none; letter-spacing: .2px; }
+
+    /* ---------- 4. Deep green ---------- */
+    .d4 { --bg: #0d2a25; --ink: #e8f4f1; --muted: #8fb0a9; --line: #24453f; --tint: #123630; --accent: #4fd6bf; --primary: #4fd6bf; --primary-ink: #052a24; --primary-text: #4fd6bf;
+          --chip: #1b4a42; --chip-border: 1px solid #2b5d54; --chip-radius: 99px; --field: #0a211d; --field-border: 1px solid #2b5d54; --box-border: 1px solid #24453f; --radius: 12px; }
+    .d4 .tag { background: #123630; }
+    .d4 .track::after { background: #052a24; }
+    .d4 .go { box-shadow: 0 0 0 1px rgba(79,214,191,.4), 0 6px 20px rgba(79,214,191,.18); }
+
+    @media (max-width: 420px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>MedsCheck design options</h1>
+    <p>Four takes on the same minimal page, all in the teal and green palette with a strong green button. They are static previews. Tell me which one to build into <code>medscheck-minimal-2.html</code>, or which parts to mix.</p>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <script>
+    const DESIGNS = [
+      { cls: "d1", name: "1. Soft card", note: "White card floating on a tinted background. Round chips with a teal dot. Gentle shadow on the button." },
+      { cls: "d2", name: "2. Editorial", note: "Serif heading, no boxes. Medicines read as a line of text. Underlined search. Most whitespace." },
+      { cls: "d3", name: "3. Clinical", note: "Dark green top band, square-ish chips with initials, and a thin fill bar for the 25 limit." },
+      { cls: "d4", name: "4. Deep green", note: "Dark mode. Light mint accents on a deep green background. Easy on the eyes at night." },
+    ];
+    const MEDS = ["Metformin", "Lisinopril", "Ibuprofen", "Atorvastatin", "Amlodipine", "Omeprazole", "Warfarin", "Sertraline"];
+
+    const head = (cls) => `
+      <header>
+        <div class="brand">Meds<span>Check</span></div>
+        <span class="tag">Prototype</span>
+      </header>`;
+
+    const body = `
+      <h2 class="title">Check your medicines.</h2>
+      <div class="box">
+        <div class="corner"><a href="#" onclick="return false">Clear all</a><span>${MEDS.length}/25</span></div>
+        <div class="chips">${MEDS.map(m => `<span class="chip" data-i="${m.slice(0, 2)}">${m}<i>×</i></span>`).join("")}</div>
+        <div class="meter"><b></b></div>
+      </div>
+      <div class="search"><div>
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        Add your medicine, e.g. Metformin
+      </div></div>
+      <button class="go" type="button">Evaluate interactions</button>
+      <div class="sources">
+        <h3>Sources</h3>
+        <div class="toggle"><span class="track"></span>
+          <span><strong>RxNorm</strong><small>Suggestions come from the US National Library of Medicine.</small></span></div>
+      </div>
+      <div class="disc">
+        <p><b>Disclaimer</b></p>
+        <p>Medicine names alone may not be enough: dosage, formulation, age and medical conditions can change the assessment.</p>
+        <p>General information only, not a substitute for professional medical advice. Always ask a doctor or pharmacist.</p>
+        <p>Your medicine list is not stored.</p>
+      </div>`;
+
+    document.getElementById("grid").innerHTML = DESIGNS.map(d => `
+      <section>
+        <p class="label"><b>${d.name}</b><span>${d.note}</span></p>
+        <div class="frame ${d.cls}">
+          ${d.cls === "d3"
+            ? `<div class="band">${head(d.cls)}</div><div class="app">${body}</div>`
+            : `<div class="app">${head(d.cls)}${body}</div>`}
+        </div>
+      </section>`).join("");
+  </script>
+</body>
+</html>
