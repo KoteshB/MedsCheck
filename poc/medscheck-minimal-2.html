@@ -27,22 +27,23 @@
     .brand { font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
     .brand span { color: var(--teal); }
     .tag { font-size: 12px; color: var(--muted); background: var(--tint); padding: 3px 10px; border-radius: 99px; }
-    h1 { font-size: 28px; line-height: 1.2; letter-spacing: -.8px; margin: 28px 0 8px; }
+    h1 { font-size: 28px; line-height: 1.2; letter-spacing: -.8px; margin: 20px 0 16px; }
     .lede { color: var(--muted); margin: 0 0 24px; }
 
     button { font: inherit; color: inherit; }
 
     /* Selected medicines: wrapping chips, scrolls after ~5 lines so the page stays compact. */
-    .box { position: relative; margin-bottom: 10px; }
-    .corner { position: absolute; top: 8px; right: 12px; display: flex; gap: 10px; align-items: baseline; font-size: 12px; color: var(--muted); background: var(--tint); padding-left: 6px; }
+    /* The count and "Clear all" float at the top right of the box, with no row of their own.
+       A float-right spacer inside the chip area makes chips wrap around that corner, so they never sit under it. */
+    .box { position: relative; margin-bottom: 10px; border: 1px dashed var(--line); border-radius: 8px; background: var(--tint); }
+    .corner { position: absolute; top: 6px; right: 20px; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; line-height: 1.3; color: var(--muted); }
     .clear { border: 0; background: none; color: var(--primary); font-weight: 600; cursor: pointer; padding: 0; font-size: 12px; }
-    #chips {
-      display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 76px 10px 10px;
-      min-height: 48px; max-height: 168px; overflow-y: auto;
-      border: 1px dashed var(--line); border-radius: 8px; background: var(--tint);
-    }
+    #chips { padding: 8px 10px 4px; min-height: 40px; max-height: 150px; overflow-y: auto; }
+    #chips .spacer { float: right; width: 62px; height: 16px; }
+    #chips .spacer.tall { height: 34px; }
     #chips .empty { color: var(--muted); font-size: 14px; align-self: center; }
     .chip {
+      margin: 0 6px 6px 0; vertical-align: top;
       display: inline-flex; align-items: center; gap: 2px; padding: 3px 4px 3px 12px;
       background: #fff; border: 1px solid var(--line); border-radius: 99px; font-size: 14px;
     }
@@ -97,15 +98,14 @@
 
     <main>
       <h1>Check your medicines.</h1>
-      <p class="lede">Add what you take to see risks.</p>
 
       <form id="form">
         <div class="box">
-          <div id="chips" aria-live="polite"></div>
           <div class="corner">
             <button type="button" class="clear" id="clear" hidden>Clear all</button>
             <span id="count" title="Medicines added" aria-label="Medicines added">0/25</span>
           </div>
+          <div id="chips" aria-live="polite"></div>
         </div>
 
         <div class="search">
@@ -137,7 +137,7 @@
     //  false: built-in list below. Nothing you type leaves the page.
     //  true:  the US National Library of Medicine RxTerms search (much larger list).
     //         Each keystroke (3+ letters) is sent to clinicaltables.nlm.nih.gov.
-    const USE_NLM = false;
+    const USE_NLM = true;
 
     const MEDICINES = `Acetaminophen, Acyclovir, Albuterol, Alendronate, Allopurinol, Alprazolam, Amiodarone, Amitriptyline, Amlodipine,
       Amoxicillin, Amoxicillin/Clavulanate, Apixaban, Aripiprazole, Aspirin, Atenolol, Atorvastatin, Azithromycin, Baclofen,
@@ -181,6 +181,9 @@
     // ----- selected list -----
     function renderChips() {
       chips.innerHTML = "";
+      const spacer = document.createElement("div");
+      spacer.className = "spacer" + (selected.length >= 2 ? " tall" : "");   // taller when "Clear all" shows
+      chips.appendChild(spacer);
       if (!selected.length) {
         const e = document.createElement("span");
         e.className = "empty";

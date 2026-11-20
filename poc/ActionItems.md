@@ -1,6 +1,6 @@
 # Action items: medicines not in the list
 
-Context: `medcheck-minimal-2.html` only accepts medicines picked from the suggestion list. The built-in list has about 190 names, so many real medicines are missing. These items cover how the page and backend should handle that.
+Context: `medscheck-minimal-2.html` only accepts medicines picked from the suggestion list. The built-in list has about 190 names, so many real medicines are missing. These items cover how the page and backend should handle that.
 
 ## 1. Use a bigger medicine source
 
