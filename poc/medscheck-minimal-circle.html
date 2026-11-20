@@ -33,6 +33,7 @@
     /* The circle stays centred, in line with the button below. Medicines list down the right side of it. */
     .orbit { position: relative; width: 100%; margin: 14px 0 18px; transition: height .3s ease; }
     .stage { position: absolute; left: 0; top: 0; width: 100%; }
+    .pills { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
     .orb-wrap { position: absolute; width: var(--D, 240px); height: var(--D, 240px); }
     .ring { position: absolute; inset: -9px; width: calc(100% + 18px); height: calc(100% + 18px); transform: rotate(-90deg); pointer-events: none; }
     .ring circle { fill: none; stroke-width: 1.6; stroke-linecap: round; }
@@ -134,7 +135,7 @@
       <h1>Check your medicines.</h1>
 
       <form id="form">
-        <div class="orbit" id="orbit"><div class="stage" id="stage">
+        <div class="orbit" id="orbit"><div class="stage" id="stage"><div class="pills" id="pills"></div>
         <div class="orb-wrap" id="orbWrap">
           <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
             <circle class="ring-track" cx="50" cy="50" r="49" />
@@ -219,6 +220,7 @@
     const orbit = document.getElementById("orbit");
     const stage = document.getElementById("stage");
     const orbWrap = document.getElementById("orbWrap");
+    const pills = document.getElementById("pills");
     const live = document.getElementById("live");
     const pillEls = new Map();      // name -> pill element, kept so pills can slide to new spots
     const q = document.getElementById("q");
@@ -260,7 +262,7 @@
           q.focus();
         });
         el.append(label, x);
-        stage.appendChild(el);
+        pills.appendChild(el);
         pillEls.set(name, el);
       });
 
@@ -280,26 +282,41 @@
       updateGo();
     }
 
-    // The circle is centred. Pills form an A to Z column to the right of it, top-aligned with the circle.
-    const PILL_GAP = 5, HALO = 14;   // space between pills, and room around the circle for its ring
+    // The circle stays centred. Pills form an A to Z list to the right of it, top-aligned with the circle.
+    // A column holds 8 medicines. The 9th starts a new column to the right of the first, and so on.
+    // If the columns would run off the screen, the list is scaled down to fit.
+    const PILL_GAP = 5, HALO = 14, ROWS = 8, COL_GAP = 8;
     function layoutOrbit() {
       const avail = orbit.clientWidth || 360;
       const D = Math.round(Math.max(190, Math.min(240, avail * 0.6)));
-      const left = avail / 2 + D / 2 + 14;                                    // left edge of the column
-      const room = Math.floor(avail - left - 31);                             // text width that fits beside the circle
+      const left = avail / 2 + D / 2 + 14;                                    // left edge of the first column
       stage.style.setProperty("--D", D + "px");
-      stage.style.setProperty("--text", Math.max(36, Math.min(110, room)) + "px");
       document.getElementById("form").style.setProperty("--D", D + "px");     // the Evaluate button matches the circle
 
-      let y = HALO;
-      selected.forEach(name => {
-        const el = pillEls.get(name);
-        const h = el.offsetHeight;
-        el.style.left = left + "px";
-        el.style.top = (y + h / 2) + "px";
-        y += h + PILL_GAP;
+      const els = selected.map(n => pillEls.get(n));
+      const h = els.length ? els[0].offsetHeight : 26;
+      const cols = Math.ceil(els.length / ROWS);
+      const colW = [];
+      els.forEach((el, i) => { const c = Math.floor(i / ROWS); colW[c] = Math.max(colW[c] || 0, el.offsetWidth); });
+      const colX = [];
+      let x = 0;
+      for (let c = 0; c < cols; c++) { colX[c] = x; x += colW[c] + COL_GAP; }
+      const listW = Math.max(0, x - COL_GAP);
+
+      // shrink the list only if it would run past the right edge of the screen
+      const roomRight = document.documentElement.clientWidth - (orbit.getBoundingClientRect().left + left) - 10;
+      const k = listW ? Math.max(0.5, Math.min(1, roomRight / listW)) : 1;
+      pills.style.left = left + "px";
+      pills.style.top = HALO + "px";
+      pills.style.transform = `scale(${k})`;
+      els.forEach((el, i) => {
+        el.style.left = colX[Math.floor(i / ROWS)] + "px";
+        el.style.top = ((i % ROWS) * (h + PILL_GAP) + h / 2) + "px";
       });
-      const H = Math.max(D + 2 * HALO, y - PILL_GAP + 2);
+
+      const rows = Math.min(els.length, ROWS);
+      const listH = rows ? (rows * h + (rows - 1) * PILL_GAP) * k : 0;
+      const H = Math.max(D + 2 * HALO, HALO + listH + 2);
       stage.style.height = H + "px";
       orbit.style.height = H + "px";
       orbWrap.style.left = (avail / 2 - D / 2) + "px";
