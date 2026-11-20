@@ -26,9 +26,13 @@
     .tag { font-size: 12px; color: var(--muted); background: var(--tint); padding: 3px 10px; border-radius: 99px; }
     h1 { font-size: 28px; line-height: 1.2; letter-spacing: -.8px; margin: 20px 0 16px; text-align: center; }
     button { font: inherit; color: inherit; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
     /* The search box lives in a circle. A ring around it fills as medicines are added (out of 25). */
-    .orb-wrap { position: relative; width: min(270px, 78vw); aspect-ratio: 1; margin: 22px auto 26px; }
+    /* Medicines orbit the circle. JS places each pill so it hugs the circle and never overlaps another pill. */
+    .orbit { position: relative; width: 100%; margin: 14px 0 18px; transition: height .3s ease; }
+    .stage { position: absolute; left: 50%; top: 0; transform-origin: top center; }
+    .orb-wrap { position: absolute; width: var(--D, 240px); height: var(--D, 240px); }
     .ring { position: absolute; inset: -9px; width: calc(100% + 18px); height: calc(100% + 18px); transform: rotate(-90deg); pointer-events: none; }
     .ring circle { fill: none; stroke-width: 1.6; stroke-linecap: round; }
     .ring .ring-track { stroke: var(--line); }
@@ -41,7 +45,7 @@
       transition: box-shadow .2s, border-color .2s;
     }
     .orb:focus-within { border-color: var(--teal); box-shadow: 0 0 0 5px rgba(22,169,149,.18), 0 10px 30px rgba(7,89,79,.12); }
-    .field { position: relative; width: 82%; }
+    .field { position: relative; width: 84%; }
     #q {
       width: 100%; border: 0; background: none; outline: none; text-align: center;
       font: inherit; font-size: 14px; color: inherit; padding: 6px 0; border-bottom: 1px solid var(--line);
@@ -53,7 +57,7 @@
     .clear { border: 0; background: none; color: var(--primary); font-weight: 600; cursor: pointer; padding: 0; font-size: 12.5px; }
 
     #suggest {
-      position: absolute; left: 50%; transform: translateX(-50%); top: calc(100% + 4px); z-index: 5;
+      position: absolute; left: 50%; transform: translateX(-50%); top: calc(100% + 4px); z-index: 20;
       width: min(340px, 92vw); margin: 0; padding: 4px; list-style: none;
       background: #fff; border: 1px solid var(--line); border-radius: 14px;
       box-shadow: 0 8px 24px rgba(22,48,43,.14); max-height: 260px; overflow-y: auto; display: none;
@@ -65,11 +69,22 @@
     #suggest li.note:hover { background: none; }
 
     /* Added medicines, centred under the circle. Scrolls after about 4 lines. */
-    #chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-height: 140px; overflow-y: auto; margin-bottom: 4px; }
-    #chips .empty { color: var(--muted); font-size: 14px; }
-    .chip { display: inline-flex; align-items: center; gap: 2px; padding: 3px 4px 3px 12px; background: var(--tint); border: 1px solid var(--line); border-radius: 99px; font-size: 14px; }
-    .chip button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; width: 24px; height: 24px; border-radius: 50%; }
-    .chip button:hover { background: #fff; color: var(--ink); }
+    .pill {
+      position: absolute; z-index: 1; display: flex; align-items: center; height: 26px; padding: 0 2px 0 9px;
+      transform: translate(-50%, -50%); white-space: nowrap; font-size: 12.5px;
+      background: #fff; border: 1px solid var(--line); border-radius: 99px;
+      box-shadow: 0 2px 6px rgba(7,89,79,.08);
+      transition: left .3s ease, top .3s ease; animation: pill-in .25s ease;
+    }
+    .pill-text { max-width: 56px; overflow: hidden; text-overflow: ellipsis; transition: max-width .15s ease; }
+    /* Hover, or tap/focus on touch screens: the pill opens up to show the full name, above its neighbours. */
+    .pill:hover, .pill:focus-within { z-index: 10; border-color: var(--teal); }
+    .pill:hover .pill-text, .pill:focus-within .pill-text { max-width: 260px; }
+    .pill:focus { outline: none; }
+    .pill button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; width: 20px; height: 20px; border-radius: 50%; flex: none; }
+    .pill button:hover { background: var(--tint); color: var(--ink); }
+    @keyframes pill-in { from { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .pill, .orbit { transition: none; animation: none; } }
 
     .gap { height: 20px; }
     .sources { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -84,7 +99,7 @@
     .toggle-text { display: flex; flex-direction: column; }
     .toggle-text small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
 
-    .go { width: 100%; border: 0; border-radius: 999px; padding: 14px; cursor: pointer; background: var(--primary); color: #fff; font-weight: 700; }
+    .go { display: block; width: var(--D, 240px); margin: 0 auto; border: 0; border-radius: 999px; padding: 14px; cursor: pointer; background: var(--primary); color: #fff; font-weight: 700; }
     .go:hover { background: #064940; }
     .go:disabled { opacity: .6; cursor: default; }
 
@@ -105,7 +120,8 @@
       <h1>Check your medicines.</h1>
 
       <form id="form">
-        <div class="orb-wrap">
+        <div class="orbit" id="orbit"><div class="stage" id="stage">
+        <div class="orb-wrap" id="orbWrap">
           <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
             <circle class="ring-track" cx="50" cy="50" r="49" />
             <circle class="ring-fill" id="ring" cx="50" cy="50" r="49" pathLength="100" />
@@ -122,8 +138,8 @@
             </div>
           </div>
         </div>
-
-        <div id="chips" aria-live="polite"></div>
+        </div></div>
+        <div id="live" class="sr" aria-live="polite"></div>
 
         <div class="gap"></div>
         <button type="submit" class="go" id="go">Evaluate interactions</button>
@@ -186,7 +202,11 @@
     const MAX_SUGGESTIONS = 8;
     const selected = [];            // names, in the order added
 
-    const chips = document.getElementById("chips");
+    const orbit = document.getElementById("orbit");
+    const stage = document.getElementById("stage");
+    const orbWrap = document.getElementById("orbWrap");
+    const live = document.getElementById("live");
+    const pillEls = new Map();      // name -> pill element, kept so pills can slide to new spots
     const q = document.getElementById("q");
     const suggest = document.getElementById("suggest");
     const results = document.getElementById("results");
@@ -205,17 +225,16 @@
 
     // ----- selected list -----
     function renderChips() {
-      chips.innerHTML = "";
-      if (!selected.length) {
-        const e = document.createElement("span");
-        e.className = "empty";
-        e.textContent = "No medicines added yet.";
-        chips.appendChild(e);
-      }
+      // 1. keep one pill element per selected medicine
+      for (const [name, el] of pillEls) if (!selected.includes(name)) { el.remove(); pillEls.delete(name); }
       selected.forEach(name => {
-        const c = document.createElement("span");
-        c.className = "chip";
+        if (pillEls.has(name)) return;
+        const el = document.createElement("span");
+        el.className = "pill";
+        el.title = name;
+        el.tabIndex = 0;            // lets a tap or keyboard focus open the pill on touch screens
         const label = document.createElement("span");
+        label.className = "pill-text";
         label.textContent = name;
         const x = document.createElement("button");
         x.type = "button";
@@ -226,9 +245,14 @@
           renderChips();
           q.focus();
         });
-        c.append(label, x);
-        chips.appendChild(c);
+        el.append(label, x);
+        stage.appendChild(el);
+        pillEls.set(name, el);
       });
+
+      layoutOrbit();
+
+      // 2. counter, ring, limits
       const full = selected.length >= MAX_MEDICINES;
       document.getElementById("count").textContent = `${selected.length}/${MAX_MEDICINES}`;
       ring.style.strokeDashoffset = 100 - (selected.length / MAX_MEDICINES) * 100;   // ring fills as the list grows
@@ -238,9 +262,82 @@
         : "Add your medicine, e.g. Metformin";
       if (full) closeSuggest();
       clearBtn.hidden = selected.length < 2;
+      live.textContent = `${selected.length} of ${MAX_MEDICINES} medicines added`;
       updateGo();
-      chips.scrollTop = chips.scrollHeight;
     }
+
+    // Place pills around the circle. The first ring hugs the circle; extra pills start at the
+    // same spot on the circle and are pushed outward until they touch nothing.
+    const PILL_GAP = 5, HALO = 14;   // space between pills, and between the circle and its ring
+    function layoutOrbit() {
+      const avail = orbit.clientWidth || 360;
+      const D = Math.round(Math.max(200, Math.min(240, avail * 0.72)));
+      stage.style.setProperty("--D", D + "px");
+      document.getElementById("form").style.setProperty("--D", D + "px");   // the Evaluate button matches the circle
+
+      const items = selected.map(n => {
+        const el = pillEls.get(n);
+        return { el, w: el.offsetWidth, h: el.offsetHeight, x: 0, y: 0 };
+      });
+      const hug = (th, w, h) => D / 2 + HALO + (w / 2) * Math.abs(Math.cos(th)) + (h / 2) * Math.abs(Math.sin(th));
+
+      // how many pills fit in the first ring
+      let cap = 0, used = 0;
+      for (const it of items) {
+        let th = -Math.PI / 2 + used;
+        let step = 0;
+        for (let k = 0; k < 2; k++) {
+          const e = it.w * Math.abs(Math.sin(th)) + it.h * Math.abs(Math.cos(th));
+          step = (e + PILL_GAP) / hug(th, it.w, it.h);
+          th = -Math.PI / 2 + used + step / 2;
+        }
+        if (used + step > 2 * Math.PI) break;
+        used += step;
+        cap++;
+      }
+      cap = Math.max(cap, Math.min(items.length, 1));
+
+      // spread each group evenly around the circle, then push outward until clear
+      const placed = [];
+      const groups = [items.slice(0, cap), items.slice(cap)];
+      groups.forEach((g, gi) => {
+        g.forEach((it, i) => {
+          const th = -Math.PI / 2 + (2 * Math.PI * (i + (gi ? 0.5 : 0))) / g.length;
+          let d = D / 2;
+          for (; d < D / 2 + 700; d += 3) {
+            const cx = d * Math.cos(th), cy = d * Math.sin(th);
+            const dx = Math.max(Math.abs(cx) - it.w / 2, 0), dy = Math.max(Math.abs(cy) - it.h / 2, 0);
+            if (Math.hypot(dx, dy) < D / 2 + HALO) continue;          // still touching the circle
+            const clash = placed.some(p =>
+              Math.abs(cx - p.x) < (it.w + p.w) / 2 + PILL_GAP && Math.abs(cy - p.y) < (it.h + p.h) / 2 + PILL_GAP);
+            if (!clash) { it.x = cx; it.y = cy; break; }
+          }
+          placed.push(it);
+        });
+      });
+
+      // size the stage to fit everything, then shrink it if it is wider than the screen
+      // (centred left to right; trimmed top and bottom so empty space is not reserved)
+      let halfW = D / 2 + HALO, top = -(D / 2 + HALO), bottom = D / 2 + HALO;
+      items.forEach(it => {
+        halfW = Math.max(halfW, Math.abs(it.x) + it.w / 2 + 2);
+        top = Math.min(top, it.y - it.h / 2 - 2);
+        bottom = Math.max(bottom, it.y + it.h / 2 + 2);
+      });
+      const W = Math.ceil(halfW * 2), H = Math.ceil(bottom - top);
+      const k = Math.max(0.6, Math.min(1, avail / W));
+      stage.style.width = W + "px";
+      stage.style.height = H + "px";
+      stage.style.transform = `translateX(-50%) scale(${k})`;
+      orbit.style.height = Math.ceil(H * k) + "px";
+      orbWrap.style.left = (halfW - D / 2) + "px";
+      orbWrap.style.top = (-top - D / 2) + "px";
+      items.forEach(it => {
+        it.el.style.left = (halfW + it.x) + "px";
+        it.el.style.top = (-top + it.y) + "px";
+      });
+    }
+    window.addEventListener("resize", () => layoutOrbit());
 
     // Interactions need at least 2 medicines, so Evaluate stays disabled until then.
     const MIN_MEDICINES = 2;
